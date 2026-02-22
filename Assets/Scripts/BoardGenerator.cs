@@ -1,16 +1,18 @@
 using UnityEngine;
 
+// 9x9の盤面を生成するクラス
 public class BoardGenerator : MonoBehaviour
 {
-    public GameObject squarePrefab;
-    public float cellSize;
-    public Vector3 startPos;
-    public float interval;
+    public GameObject squarePrefab; // 生成するマスのプレハブ
+    public Vector3 startPos;        // 盤面の開始位置
+    public float interval;          // マス間の間隔
 
     void Start()
     {
-        GenerateBoard();
+        GenerateBoard(); // ゲーム開始時に盤面を生成
     }
+
+    // 盤面を生成する関数
     void GenerateBoard()
     {
         for (int x = 0; x < 9; x++)
@@ -19,14 +21,16 @@ public class BoardGenerator : MonoBehaviour
             {
                 GameObject square = Instantiate(squarePrefab);
 
+                // マスの位置を計算
                 float posX = startPos.x + (x * interval);
                 float posY = startPos.y + (y * interval);
 
                 square.transform.position = new Vector3(posX, posY, 0);
-                square.transform.SetParent(transform);
+                square.transform.SetParent(transform); // このオブジェクトの子にする
             }
         }
     }
 }
-    
-    
+
+
+
