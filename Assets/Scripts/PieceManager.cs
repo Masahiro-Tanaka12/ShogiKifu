@@ -19,7 +19,7 @@ public class PieceManager : MonoBehaviour
     public List<PieceData> pieceImages;
 
 
-    //　辞書
+    //　駒の辞書
     private Dictionary<string, Sprite> imageDict = new Dictionary<string, Sprite>();
 
 
@@ -93,8 +93,6 @@ public class PieceManager : MonoBehaviour
 
         // 名簿に登録
         pieceBoard[x, y] = pObj;
-
-        
     }
 
     public void SetupBoard()
@@ -105,4 +103,33 @@ public class PieceManager : MonoBehaviour
         }
     }
 
+    public void MovePiece(int fromX, int fromY, int toX, int toY)
+    {
+        GameObject targetPiece = pieceBoard[fromX, fromY];
+        if (targetPiece == null) return;
+
+        // --- 追加：駒を取る処理 ---
+        GameObject pieceAtToPos = pieceBoard[toX, toY];
+        if (pieceAtToPos != null)
+        {
+            // 移動先に駒がいたら、それは取られた駒。とりあえず消す！
+            Destroy(pieceAtToPos);
+            // ※本格的に作るなら、ここで「持ち駒リスト」に移動させる
+        }
+        // -----------------------
+
+        // 名簿の更新
+        pieceBoard[toX, toY] = targetPiece;
+        pieceBoard[fromX, fromY] = null;
+
+        // 見た目の移動
+        targetPiece.GetComponent<Piece>().SetPosition(toX, toY, board.interval, board.startPos);
+    }
+    // PieceManager.cs の中に追加
+    public void OnNextButtonClick()
+    {
+        // テストとして「7六歩」を動かしてみる
+        // 座標はあなたの設定に合わせて調整してください（例：2,2 から 2,3）
+        MovePiece(2, 2, 2, 3);
+    }
 }
