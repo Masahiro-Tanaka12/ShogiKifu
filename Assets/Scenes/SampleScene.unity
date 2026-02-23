@@ -188,6 +188,19 @@ MonoBehaviour:
     y: 0
     isSente: 0
     type: 
+  kifuList:
+  - fromX: 2
+    fromY: 2
+    toX: 2
+    toY: 3
+  - fromX: 1
+    fromY: 6
+    toX: 1
+    toY: 5
+  - fromX: 3
+    fromY: 2
+    toX: 3
+    toY: 3
 --- !u!4 &80568826
 Transform:
   m_ObjectHideFlags: 0
@@ -934,7 +947,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1539919079}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 80568825}
+        m_TargetAssemblyTypeName: PieceManager, Assembly-CSharp
+        m_MethodName: OnNextButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1539919079
 MonoBehaviour:
   m_ObjectHideFlags: 0

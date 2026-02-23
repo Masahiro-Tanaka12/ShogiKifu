@@ -1,14 +1,21 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 
 public class PieceManager : MonoBehaviour
 {
-    public GameObject piecePrefab; // 駒の設計図
-    public BoardGenerator board;    // 盤面情報
+    [Header("Settings")]
+    public GameObject piecePrefab;
+    public BoardGenerator board;
+    public TextAsset kifuFile;
 
-    // 駒の名簿
+    [Header("Piece Sprites")]
+    public List<PieceData> pieceImages;
+    private Dictionary<string, Sprite> imageDict = new Dictionary<string, Sprite>();
+
+    // 内部データ
     private GameObject[,] pieceBoard = new GameObject[9, 9];
+    private List<MoveData> kifuList = new List<MoveData>();
+    private int currentMoveIndex = 0;
 
     [System.Serializable]
     public struct PieceData
@@ -16,91 +23,88 @@ public class PieceManager : MonoBehaviour
         public string name;
         public Sprite image;
     }
-    public List<PieceData> pieceImages;
 
-
-    //　駒の辞書
-    private Dictionary<string, Sprite> imageDict = new Dictionary<string, Sprite>();
-
-
-    // 初期配置用の構造体
     [System.Serializable]
-    public struct InitialPiece
+    public struct MoveData
     {
-        public int x;
-        public int y;
-        public bool isSente;
-        public string type;
+        public int fromX, fromY, toX, toY;
     }
-
-    public List<InitialPiece> setupData; 
 
     void Awake()
     {
-        // リストを辞書形式に変換しておく
-        foreach (var data in pieceImages)
-        {
-            imageDict[data.name] = data.image;
-        }
+        InitializeDictionary();
+        LoadKifu();
     }
 
     void Start()
     {
-        // 文字列で初期配置を定義（x, y, 勢力, 種類）
-        string[] initialSetup = {
-        // --- 先手（isSente: false） ---
-        "0,0,false,KY", "1,0,false,KE", "2,0,false,GI", "3,0,false,KI", "4,0,false,OU", "5,0,false,KI", "6,0,false,GI", "7,0,false,KE", "8,0,false,KY",
-        "7,1,false,HI", "1,1,false,KK",
-        "0,2,false,FU", "1,2,false,FU", "2,2,false,FU", "3,2,false,FU", "4,2,false,FU", "5,2,false,FU", "6,2,false,FU", "7,2,false,FU", "8,2,false,FU",
+        SpawnInitialLayout();
+    }
 
-        // --- 後手（isSente: true） ---
-        "0,6,true,EFU", "1,6,true,EFU", "2,6,true,EFU", "3,6,true,EFU", "4,6,true,EFU", "5,6,true,EFU", "6,6,true,EFU", "7,6,true,EFU", "8,6,true,EFU",
-        "1,7,true,EHI", "7,7,true,EKK",
-        "0,8,true,EKY", "1,8,true,EKE", "2,8,true,EGN", "3,8,true,EKN", "4,8,true,EOU", "5,8,true,EKN", "6,8,true,EGN", "7,8,true,EKE", "8,8,true,EKY"
-    };
+    // --- 初期化系 ---
+
+    private void InitializeDictionary()
+    {
+        foreach (var data in pieceImages)
+        {
+            if (!imageDict.ContainsKey(data.name))
+                imageDict.Add(data.name, data.image);
+        }
+    }
+
+    private void SpawnInitialLayout()
+    {
+        string[] initialSetup = {
+            "0,0,false,KY", "1,0,false,KE", "2,0,false,GN", "3,0,false,KN", "4,0,false,OU", "5,0,false,KN", "6,0,false,GN", "7,0,false,KE", "8,0,false,KY",
+            "7,1,false,HI", "1,1,false,KK",
+            "0,2,false,FU", "1,2,false,FU", "2,2,false,FU", "3,2,false,FU", "4,2,false,FU", "5,2,false,FU", "6,2,false,FU", "7,2,false,FU", "8,2,false,FU",
+            "0,6,true,EFU", "1,6,true,EFU", "2,6,true,EFU", "3,6,true,EFU", "4,6,true,EFU", "5,6,true,EFU", "6,6,true,EFU", "7,6,true,EFU", "8,6,true,EFU",
+            "1,7,true,EHI", "7,7,true,EKK",
+            "0,8,true,EKY", "1,8,true,EKE", "2,8,true,EGN", "3,8,true,EKN", "4,8,true,EOU", "5,8,true,EKN", "6,8,true,EGN", "7,8,true,EKE", "8,8,true,EKY"
+        };
 
         foreach (string line in initialSetup)
         {
             string[] s = line.Split(',');
-            int x = int.Parse(s[0]);
-            int y = int.Parse(s[1]);
-            bool isSente = bool.Parse(s[2]);
-            string type = s[3];
-
-            PlacePiece(x, y, isSente, type);
+            PlacePiece(int.Parse(s[0]), int.Parse(s[1]), bool.Parse(s[2]), s[3]);
         }
     }
 
-    // 駒を生成して配置する関数
+    void LoadKifu()
+    {
+        if (kifuFile == null) return;
+
+        string[] lines = kifuFile.text.Split(new[] { '\n', '\r' }, System.StringSplitOptions.RemoveEmptyEntries);
+        foreach (string line in lines)
+        {
+            string[] s = line.Split(',');
+            if (s.Length == 4)
+            {
+                kifuList.Add(new MoveData
+                {
+                    fromX = int.Parse(s[0]),
+                    fromY = int.Parse(s[1]),
+                    toX = int.Parse(s[2]),
+                    toY = int.Parse(s[3])
+                });
+            }
+        }
+    }
+
+    // --- 駒の操作系 ---
+
     public void PlacePiece(int x, int y, bool isSente, string type)
     {
-        // 生成
         GameObject pObj = Instantiate(piecePrefab);
-
-        // データのセット
         Piece p = pObj.GetComponent<Piece>();
+
         p.isSente = isSente;
         p.type = type;
 
-        // 名前に対応した画像をセット
-        if (imageDict.ContainsKey(type))
-        {
-            p.SetSprite(imageDict[type]);
-        }
+        if (imageDict.TryGetValue(type, out Sprite sp)) p.SetSprite(sp);
 
-        // 見た目の反映
         p.SetPosition(x, y, board.interval, board.startPos);
-
-        // 名簿に登録
         pieceBoard[x, y] = pObj;
-    }
-
-    public void SetupBoard()
-    {
-        foreach (var data in setupData)
-        {
-            PlacePiece(data.x, data.y, data.isSente, data.type);
-        }
     }
 
     public void MovePiece(int fromX, int fromY, int toX, int toY)
@@ -108,28 +112,26 @@ public class PieceManager : MonoBehaviour
         GameObject targetPiece = pieceBoard[fromX, fromY];
         if (targetPiece == null) return;
 
-        // --- 追加：駒を取る処理 ---
-        GameObject pieceAtToPos = pieceBoard[toX, toY];
-        if (pieceAtToPos != null)
+        // 移動先の駒を除去
+        if (pieceBoard[toX, toY] != null)
         {
-            // 移動先に駒がいたら、それは取られた駒。とりあえず消す！
-            Destroy(pieceAtToPos);
-            // ※本格的に作るなら、ここで「持ち駒リスト」に移動させる
+            Destroy(pieceBoard[toX, toY]);
         }
-        // -----------------------
 
-        // 名簿の更新
+        // 名簿更新
         pieceBoard[toX, toY] = targetPiece;
         pieceBoard[fromX, fromY] = null;
 
-        // 見た目の移動
+        // 位置反映
         targetPiece.GetComponent<Piece>().SetPosition(toX, toY, board.interval, board.startPos);
     }
-    // PieceManager.cs の中に追加
+
     public void OnNextButtonClick()
     {
-        // テストとして「7六歩」を動かしてみる
-        // 座標はあなたの設定に合わせて調整してください（例：2,2 から 2,3）
-        MovePiece(2, 2, 2, 3);
+        if (currentMoveIndex >= kifuList.Count) return;
+
+        MoveData move = kifuList[currentMoveIndex];
+        MovePiece(move.fromX, move.fromY, move.toX, move.toY);
+        currentMoveIndex++;
     }
 }
