@@ -7,7 +7,13 @@ public class Piece : MonoBehaviour
     public bool isSente; // 先手ならtrue, 後手ならfalse
     public string type;  // 駒の種類
 
-    // 指定した座標にパッと移動するメソッド
+    public void SetSprite(Sprite newSprite)
+    {
+        // 自分の SpriteRenderer を捕まえて画像を差し替える
+        GetComponent<SpriteRenderer>().sprite = newSprite;
+    }
+
+    // 指定した座標に移動するメソッド
     public void SetPosition(int gridX, int gridY, float interval, Vector3 startPos)
     {
         x = gridX;
@@ -16,6 +22,6 @@ public class Piece : MonoBehaviour
         float posX = startPos.x + (x * interval);
         float posY = startPos.y + (y * interval);
 
-        transform.position = new Vector3(posX, posY, -1); // 盤面より手前に出すため Zは-1
+        transform.position = new Vector3(posX, posY, -1); // 盤面より手前に出すため
     }
 }
