@@ -30,6 +30,16 @@ public class PieceManager : MonoBehaviour
         public int fromX, fromY, toX, toY;
     }
 
+    [System.Serializable]
+    public struct MoveHistory
+    {
+        public int fromX, fromY;
+        public int toX, toY;
+        public GameObject takenPiece;
+    }
+
+    private List<MoveHistory> historyList = new List<MoveHistory>();
+
     void Awake()
     {
         InitializeDictionary();
@@ -107,22 +117,35 @@ public class PieceManager : MonoBehaviour
         pieceBoard[x, y] = pObj;
     }
 
-    public void MovePiece(int fromX, int fromY, int toX, int toY)
+    public void MovePiece(int fromX, int fromY, int toX, int toY, bool isUndo = false)
     {
         GameObject targetPiece = pieceBoard[fromX, fromY];
         if (targetPiece == null) return;
 
-        // 移動先の駒を除去
-        if (pieceBoard[toX, toY] != null)
+        GameObject pieceAtToPos = pieceBoard[toX, toY];
+
+        // 「戻る」操作ではない時だけ、履歴を記録する
+        if (!isUndo)
         {
-            Destroy(pieceBoard[toX, toY]);
+            MoveHistory history = new MoveHistory
+            {
+                fromX = fromX,
+                fromY = fromY,
+                toX = toX,
+                toY = toY,
+                takenPiece = pieceAtToPos // 消える駒をメモ！
+            };
+            historyList.Add(history);
+
+            // 取られた駒を画面から消すのではなく「非表示」にする（後で復活させるため）
+            if (pieceAtToPos != null) pieceAtToPos.SetActive(false);
         }
 
         // 名簿更新
         pieceBoard[toX, toY] = targetPiece;
         pieceBoard[fromX, fromY] = null;
 
-        // 位置反映
+        // 見た目の移動
         targetPiece.GetComponent<Piece>().SetPosition(toX, toY, board.interval, board.startPos);
     }
 
@@ -133,5 +156,29 @@ public class PieceManager : MonoBehaviour
         MoveData move = kifuList[currentMoveIndex];
         MovePiece(move.fromX, move.fromY, move.toX, move.toY);
         currentMoveIndex++;
+    }
+    public void OnBackButtonClick()
+    {
+        if (historyList.Count == 0) return; // 履歴がなければ何もしない
+
+        // 1. 最後の履歴を取り出してリストから消す
+        int lastIdx = historyList.Count - 1;
+        MoveHistory lastMove = historyList[lastIdx];
+        historyList.RemoveAt(lastIdx);
+
+        // 2. 駒を逆方向に動かす (toX, toY -> fromX, fromY)
+        // 引数に true を渡して、履歴に記録されないようにする
+        MovePiece(lastMove.toX, lastMove.toY, lastMove.fromX, lastMove.fromY, true);
+
+        // 3. もし取っていた駒があれば復活させる
+        if (lastMove.takenPiece != null)
+        {
+            lastMove.takenPiece.SetActive(true);
+            // 名簿（配列）にも戻してあげる
+            pieceBoard[lastMove.toX, lastMove.toY] = lastMove.takenPiece;
+        }
+
+        // 4. 手数を戻す
+        currentMoveIndex--;
     }
 }
